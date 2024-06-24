@@ -43,3 +43,5 @@ export const SOCIALS: Socials = [
     HREF: "https://www.instagram.com/kan.yyz/",
   },
 ];
+
+export const INTRO_TITLES = ["Software Engineer", "Musician"];

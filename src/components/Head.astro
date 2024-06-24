@@ -144,12 +144,24 @@ const { title, description, image = "/blog-placeholder-1.jpg" } = Astro.props;
   }
 
   function animate() {
+    const headerTextReveals = document.querySelectorAll(".animate-reveal");
     const animateElements = document.querySelectorAll(".animate");
+
+    const revealDuration = 1000;
+    const revealDelay = 500;
+    
+    headerTextReveals.forEach((element, index) => {
+      setTimeout(() => {
+        element.classList.add("show");
+      }, index * revealDelay);
+    });
+
+    const totalRevealTime = headerTextReveals.length * revealDelay + revealDuration;
 
     animateElements.forEach((element, index) => {
       setTimeout(() => {
         element.classList.add("show");
-      }, index * 100);
+      }, totalRevealTime + index * 200);
     });
   }
 

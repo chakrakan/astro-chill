@@ -58,11 +58,21 @@ article {
 
 .animate {
   @apply -translate-y-3 opacity-0;
-  @apply transition-all duration-300 ease-out;
+  @apply duration-2000 transition-all ease-in-out;
 }
 
 .animate.show {
   @apply translate-y-0 opacity-100;
+}
+
+.animate-reveal {
+  @apply duration-1200 opacity-0 transition-all ease-in-out;
+  clip-path: inset(0 100% 0 0);
+}
+
+.animate-reveal.show {
+  @apply opacity-100;
+  clip-path: inset(0 0 0 0);
 }
 
 html #back-to-top {
