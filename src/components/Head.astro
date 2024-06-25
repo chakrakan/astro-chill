@@ -10,18 +10,17 @@ interface Props {
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
-const { title, description, image = "/blog-placeholder-1.jpg" } = Astro.props;
+const { title, description, image = "/social-card.png" } = Astro.props;
 ---
 
 <!-- Global Metadata -->
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-<link
-  rel="icon"
-  href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔬</text></svg>"
-/>
-<meta name="generator" content={Astro.generator} />
+<meta charset='utf-8' />
+<meta name='viewport' content='width=device-width,initial-scale=1' />
+<link rel='apple-touch-icon' sizes='180x180' href='/apple-touch-icon.png' />
+<link rel='icon' type='image/png' sizes='32x32' href='/favicon-32x32.png' />
+<link rel='icon' type='image/png' sizes='16x16' href='/favicon-16x16.png' />
+<link rel='manifest' href='/site.webmanifest' />
+<meta name='generator' content={Astro.generator} />
 
 <!-- Font preloads -->
 <link
@@ -147,8 +146,10 @@ const { title, description, image = "/blog-placeholder-1.jpg" } = Astro.props;
     const headerTextReveals = document.querySelectorAll(".animate-reveal");
     const animateElements = document.querySelectorAll(".animate");
 
-    const revealDuration = 1000;
-    const revealDelay = 500;
+    const onHomePage = window.location.pathname === "/";
+
+    let revealDuration = onHomePage ? 1000 : 0;
+    let revealDelay = onHomePage ? 500 : 0;
     
     headerTextReveals.forEach((element, index) => {
       setTimeout(() => {
@@ -161,7 +162,7 @@ const { title, description, image = "/blog-placeholder-1.jpg" } = Astro.props;
     animateElements.forEach((element, index) => {
       setTimeout(() => {
         element.classList.add("show");
-      }, totalRevealTime + index * 200);
+      }, totalRevealTime + index * 100);
     });
   }
 

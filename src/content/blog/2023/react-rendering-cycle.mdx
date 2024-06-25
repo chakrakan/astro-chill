@@ -1,0 +1,92 @@
+---
+title: 'The React Render Cycle'
+date: 'Mar 30, 2023'
+description: 'Some background on how the React Render Cycle works!'
+---
+import { Image } from "astro:assets";
+import RenderCycle from '@/assets/post-images/react-render-cycle/render-cycle.png';
+import StateTree from '@/assets/post-images/react-render-cycle/state-tree.png';
+import ColorfulRenderCycle from '@/assets/post-images/react-render-cycle/colorful-render-cycle.png';
+
+## React Performance
+
+> “Not doing stuff is faster than doing stuff”
+
+> “Doing stuff later is better than doing stuff now”
+
+When trying to optimize your React code, here are some steps to follow:
+
+- if you can solve a problem with how you shape your component hierarchy or state — do that first since there are zero downsides (Component hierarchy & State Management)
+- Memoization and other optimizations are solid strategies **_only_** if the cost of checking pays for itself with the time we save rendering — e.g. sure the code is 0.01 ms faster now, but now it’s nearly un-readable and less developer friendly. (Memoization)
+- Using `Suspense` API to progressively load our app is a good idea (Suspense API)
+- The `Transition` API is there when we’re in a pickle — aka maybe we do the urgent stuff now, and the less urgent stuff later (Transition API)
+
+Use the record feature on the dev-tools to optimize later. Record and leverage the flame graph. Measure first before you optimize performance.
+
+> NOTE: You can also see flashes/boxes around the components that are being re-rendered every-time you perform a certain action. Check `Highlight updates when components render`
+
+### React Rendering Cycle
+
+<Image
+  src={RenderCycle}
+  class="rounded-lg"
+  alt='render cycle'
+  width="auto"
+  height="auto"
+/>
+
+When something changes, we go through the render phase
+
+The changes are made on the VDOM and then committed to the DOM (like refs)
+
+Implicitly, within the commit and clean-up phases, there’s a passive “effects” phase where all the useEffects and other things take place
+
+- Animations and stuff depends how it’s happening — if it’s through CSS, then it’s not occurring on the main thread, if it’s manual changes via refs and stuff, then the commit phase
+
+### Render Phase
+
+<Image
+  src={StateTree}
+  class="rounded-lg"
+  alt='react state tree'
+  width="auto"
+  height="auto"
+/>
+
+`useState` is an abstraction over `useReducer`
+
+The heuristic React uses to render or re-render stuff is “did the parent change”. Then all of its children will be asked to re-render.
+
+What happens if we trigger multiple state changes at the same time?
+
+Do we go down the DOM tree X number of times? It depends on what version of React we are using — if using React 17 or earlier, these changes are _sometimes_ batched in an event handler. There’s of course more nuance to this which is out of scope. For instance, if an event handler had a setTimeout or async stuff, they are no longer batched.
+
+In React 18, it’s always batched. In 17 it depends, in 18 always.
+
+If the state change happens lower down the chain, fewer things need to re-render. The further you can push down the state change, the better things will be — which is antithetical to what we are always told “you lift everything up, pass everything down”. Don’t lift it too “high” is what the diagram is trying to say.
+
+Too high and you have a lot of unnecessary re-renders.
+
+This is first and best step 1 measure one can take to start optimizing React code.
+
+You may have heard of React “Fiber”, it’s a cool data structure that is being used to keep track of component `instances`
+
+When you use `keys` when mapping over components — adding, removing, changing the order of such collections with unique keys makes it easy for React to keep track of which and avoid having to spend too much effort to figure out what changed.
+
+- bad ideas for keys — array indexes, math.random lol
+
+Keep things simple, the fancier you get (like switching divs to spans programmatically), the more you’re walking on the edge.
+
+### Memoization
+
+If this goes down 49 levels, then stopping it at 2 or 3 is probably a good idea. This is where memoization comes in. If the cost of prevent things from unnecessarily re-rendering is a better trade-off than having 49 levels of children render out, then so be it!
+
+The cost-benefit is about how expensive a particular path would be if not checked earlier.
+
+<Image
+  src={ColorfulRenderCycle}
+  class="rounded-lg"
+  alt='colorful render cycle'
+  width="auto"
+  height="auto"
+/>

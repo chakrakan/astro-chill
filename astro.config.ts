@@ -6,11 +6,13 @@ import { defineConfig } from "astro/config";
 
 // https://astro.build/config
 export default defineConfig({
-  site: "https://astro-micro.vercel.app",
+  site: "https://devkanisk.com",
+  scopedStyleStrategy: "where",
   integrations: [tailwind(), sitemap(), mdx(), pagefind()],
   markdown: {
+    syntaxHighlight: "shiki",
     shikiConfig: {
-      theme: "css-variables",
+      theme: "dracula-soft",
     },
   },
 });

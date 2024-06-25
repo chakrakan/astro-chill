@@ -1,0 +1,177 @@
+---
+title: 'Why Astro?'
+date: 'Sep 3, 2023'
+description: "We're now on v3.0, let's dive into why I chose Astro over everything else."
+---
+
+import { Image } from 'astro:assets';
+import AstroPerf from '@/assets/post-images/astro-update/astro-perf.png';
+import NextJsPerf from '@/assets/post-images/astro-update/next-js-perf.png';
+
+## Prehistoric Tinkering
+
+I have dabbled with just about every way to host your own blog/personal website in its various iterations,
+all the way up to the current:
+
+- basic HTML, CSS, JavaScript
+- Jekyll template
+- Hugo template
+- Gatsby
+- NextJS
+- Astro (current)
+
+After all these iterations, I finally have a nice home in Astro. I used NextJS just up until after the `v13` update and decided
+to pull the trigger to switch once Astro hit v2.0.
+
+While both are powerful in their own right, Astro was just giving me better results out-of-the-box for my use-case and priorities:
+
+- rendering out static content with minimal config (mostly blog-posts, at the time of writing this)
+- minimal to no interactivity, with the option to opt in/out, maybe light animations?
+- smaller bundles, faster builds
+
+Optimized NextJS build performance, hosted on Vercel with an [SEO component](https://github.com/chakrakan/devkanisk/blob/main/components/SeoContainer/SeoContainer.tsx) I coded up very similar to the one I'm using in Astro:
+
+<Image
+  alt='NextJS Performance'
+  class='rounded-lg mx-auto'
+  src={NextJsPerf}
+  width='500'
+  height='500'
+/>
+
+Minimal config Astro build performance with similar SEO Component code, hosted on Cloudflare:
+
+<Image
+  alt='Astro Performance'
+  class='rounded-lg mx-auto'
+  src={AstroPerf}
+  width='500'
+  height='500'
+/>
+
+## In comes Astro 🚀 
+
+Here are a few key reasons why I, in particular, decided to migrate to v2.0 initially, and now v3.0
+
+**1. Zero-JavaScript by Default:**
+
+One of Astro's standout features is that it ships zero JavaScript by default. This is in stark contrast to most modern web frameworks, including Next.js, which ship with JavaScript even if it's not always necessary.
+This means that an Astro site will only load JavaScript when it's explicitly required. For many websites, especially content-heavy ones, this can lead to significantly faster load times.
+While my content is not "heavy" as of now, I wanted a solution which can scale gradually with minimal config to do so. If I decide to expand to more pages and content, this won't pose an issue!
+
+**2. Partial Hydration/Islands:**
+
+One of the most innovative features of Astro is its approach to hydration. While traditional Single Page Applications (SPAs) hydrate the entire app, Astro introduces the concept of `partial hydration` and `islands` of interactivity.
+
+This means only specific components that need interactivity get hydrated, while the rest remain static.
+This selective hydration ensures that only the minimal necessary JavaScript is loaded and executed, leading to faster interactions and less wasted processing. NextJS doesn't support partial hydration and instead makes the user load and rehydrate the entire page in the browser, even if most of the page content is static.
+
+**3. Optimized Bundling:**
+
+Astro uses a fine-grained bundling approach. It doesn't just split bundles based on routes (like many frameworks do) but can also create bundles based on individual components. This ensures that users download only what's necessary for the page they're viewing.
+Next.js also offers optimized bundling through code-splitting, but it's generally at the page level, which can sometimes lead to larger bundles than necessary.
+
+**4. Framework Agnosticism:**
+
+> This is a huge one, and one I feel like can be a boon when it comes to hiring for companies who leverage Astro
+
+A standout feature of Astro is its ability to let developers use components from different frameworks (like React, Vue, Svelte) in the same project. This means you can use the best tool for the job without committing to a single framework. Next.js, on the other hand, is primarily built around React.
+The ability to create components in any of the popular web-frameworks (or all of them at once) while being able to pull up custom hooks exposed by them respectively is a neat magic trick, Astro. Kudos 🪄🎩✨
+
+**5. Enhanced Static Site Generation (SSG) and Hosting:**
+
+While both Astro and Next.js support SSG, Astro's static rendering is more extensive. It allows for a more granular control over how pages are built and served, leading to better performance and SEO benefits.
+
+Given its static nature, Astro websites can be hosted on any static site hosting platform, offering developers a wide range of choices. Next.js, while versatile, often benefits from hosting platforms optimized for server-side rendering (SSR) or serverless functions.
+
+**6. Content Management:**
+
+> Another huge one!
+
+Previously, I was using [Contentlayer](https://contentlayer.dev/) to power a MDX based blog and website in NextJS:
+- [archived template here](https://github.com/chakrakan/next-js-mdx-starter)
+
+Here's the [archived source of my website](https://github.com/chakrakan/devkanisk) as well.
+
+Configuring this was not too bad, but there was some tedious wiring going on to get all the features of that iteration of my site working.
+
+While this wasn't too bad in terms of productivity regarding writing blog-posts, I did notice a lot of arbitrary breaking builds and overall wasted time, especially when dealing with dependency upgrades.
+
+Astro's [content collectons](https://docs.astro.build/en/guides/content-collections/) was the perfect fit for me with very minimal config to get setup with writing your own content.
+
+The biggest benefit so far has to be the standardized setup/config via the `content` folder along with it's zod configurations. With dead simple config tweaks, you can migrate over your existing content from your Astro site to another
+Astro site seamlessly. 
+
+A sample config that sets up your blog post schema, gives you typing validations using [Zod](https://zod.dev/):
+
+```typescript
+import { defineCollection, z } from 'astro:content';
+
+const blog = defineCollection({
+  schema: z.object({
+    title: z.string(),
+    description: z.string(),
+    pubDate: z
+      .string()
+      .or(z.date())
+      .transform((val) => new Date(val)),
+    updatedDate: z
+      .string()
+      .optional()
+      .transform((str) => (str ? new Date(str) : undefined)),
+    heroImage: z.string().optional(),
+    draft: z.boolean().optional(),
+  }),
+});
+
+export const collections = { blog };
+```
+
+Gone were the troubles with managing dependency upgrades and worrying about breaking changes and having
+a broken site, and I could define N number of collections and serve them out arbitrarily wherever using `getStaticPaths`
+
+Here's a small snippet to grab paths to your various posts and then render out the `<Content />` component within your
+Layout.
+
+```astro
+export async function getStaticPaths() {
+  const posts = await getCollection('blog', ({ data }) => {
+    return data.draft !== true;
+  });
+  return posts.map((post) => ({
+    params: { slug: post.slug },
+    props: post,
+  }));
+}
+type Props = CollectionEntry<'blog'>;
+
+const post = Astro.props;
+const { title, description, pubDate, updatedDate, heroImage } = post.data;
+const { Content } = await post.render();
+---
+<div>
+ <Content />
+</div>
+```
+
+**7. ViewTransitions Support:**
+
+The Google Chrome team announced a new and exciting API for simple and buttery-smooth transitions on the web — [ViewTransitions](https://developer.mozilla.org/en-US/docs/Web/API/View_Transitions_API).
+With v3.0, one of the bigger features was the opt-in, per-page, support for view transitions with just a few lines of code. View transitions update your page content without the browser’s normal, full-page navigation refresh and provide seamless animations between pages.
+
+Astro provides a `<ViewTransitions />` routing component that can be added to a single page’s `<head>` tag to control page transitions as you navigate away to another page.
+It provides a lightweight client-side router that intercepts navigation and allows you to customize the transition between pages.
+
+So just like that, I get access to some built-in animation options, such as `fade`, `slide`, and `none`. Can you guess which one I'm using for now? 😆
+
+**8. Image optimization:**
+
+The last thing, which is something I loved in Gatsby, that was kinda ported over to NextJS, and now, thankfully is part of core Astro instead of a [separate pacakge](https://docs.astro.build/en/guides/images/#remove-astrojsimage), is the support for Image compression.
+I am able to serve out compressed `webp` images from my `pngs`, `jpegs`, etc. if I put my assets within the `src` folder of my project, moving them out of the `public` folder, where I previously situated them.
+
+## Closing Thoughts
+
+Now, I'm sure there are more nuanced and obscure features that I missed covering here, but these were the ones that I felt compelled to highlight, especially from the point of view of a developer who likes to
+casually maintain a blog to blabber about random stuff going on their life. These are the features that directly impact my productivity and were key to get me to migrate from the already great NextJS framework!
+
+So if you are a developer looking for a new framework to cook up your personal site with, I can't recommend Astro enough! 
