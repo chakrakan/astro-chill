@@ -23,5 +23,6 @@ export async function GET(context) {
       pubDate: item.data.date,
       link: `/${item.collection}/${item.slug}/`,
     })),
+    stylesheet: "/rss/pretty-feed-v3.xsl",
   });
 }
