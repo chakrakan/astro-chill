@@ -1,0 +1,209 @@
+---
+interface Props {
+  variant?: "celebration" | "achievement" | "milestone" | "sparkle";
+}
+
+const { variant = "celebration" } = Astro.props;
+
+const variantConfig = {
+  celebration: {
+    gradient: "from-pink-500 via-rose-500 to-amber-500",
+    darkGradient: "dark:from-pink-400 dark:via-rose-400 dark:to-amber-400",
+  },
+  achievement: {
+    gradient: "from-emerald-500 via-teal-500 to-cyan-500",
+    darkGradient: "dark:from-emerald-400 dark:via-teal-400 dark:to-cyan-400",
+  },
+  milestone: {
+    gradient: "from-violet-500 via-purple-500 to-fuchsia-500",
+    darkGradient: "dark:from-violet-400 dark:via-purple-400 dark:to-fuchsia-400",
+  },
+  sparkle: {
+    gradient: "from-amber-400 via-yellow-500 to-orange-500",
+    darkGradient: "dark:from-amber-300 dark:via-yellow-400 dark:to-orange-400",
+  },
+};
+
+const config = variantConfig[variant];
+---
+
+<div class="highlight-wrapper not-prose">
+  <button class="highlight-container" type="button" aria-label="Click for confetti!">
+    <div class={`highlight-bg bg-gradient-to-r ${config.gradient} ${config.darkGradient}`}></div>
+    <div class="highlight-content">
+      <span class="highlight-text">
+        <slot />
+      </span>
+    </div>
+  </button>
+</div>
+
+<script>
+  const colors = [
+    '#f472b6', // pink
+    '#fb7185', // rose
+    '#fbbf24', // amber
+    '#a78bfa', // violet
+    '#34d399', // emerald
+    '#22d3ee', // cyan
+    '#f97316', // orange
+    '#facc15', // yellow
+  ];
+  
+  const shapes = ['●', '■', '▲', '★', '♦', '🎉', '✨', '💫', '♥', '⬟'];
+
+  function createConfettiPiece(x: number, y: number): HTMLSpanElement {
+    const confetti = document.createElement('span');
+    confetti.textContent = shapes[Math.floor(Math.random() * shapes.length)];
+    confetti.style.cssText = `
+      position: fixed;
+      left: ${x}px;
+      top: ${y}px;
+      font-size: ${10 + Math.random() * 14}px;
+      color: ${colors[Math.floor(Math.random() * colors.length)]};
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%);
+    `;
+    
+    const angle = Math.random() * Math.PI * 2;
+    const velocity = 150 + Math.random() * 200;
+    const vx = Math.cos(angle) * velocity;
+    const vy = Math.sin(angle) * velocity - 100; // bias upward
+    const rotation = (Math.random() - 0.5) * 720;
+    const duration = 800 + Math.random() * 400;
+    
+    confetti.animate([
+      { 
+        transform: 'translate(-50%, -50%) rotate(0deg) scale(1)',
+        opacity: 1 
+      },
+      { 
+        transform: `translate(calc(-50% + ${vx}px), calc(-50% + ${vy + 150}px)) rotate(${rotation}deg) scale(0.3)`,
+        opacity: 0 
+      }
+    ], {
+      duration: duration,
+      easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+      fill: 'forwards'
+    });
+    
+    return confetti;
+  }
+
+  function burstConfetti(e: MouseEvent) {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    
+    // Create confetti container as portal
+    const container = document.createElement('div');
+    container.style.cssText = `
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9999;
+      overflow: visible;
+    `;
+    document.body.appendChild(container);
+    
+    // Create confetti pieces
+    for (let i = 0; i < 40; i++) {
+      const delay = Math.random() * 100;
+      setTimeout(() => {
+        const piece = createConfettiPiece(centerX, centerY);
+        container.appendChild(piece);
+      }, delay);
+    }
+    
+    // Cleanup
+    setTimeout(() => {
+      container.remove();
+    }, 2000);
+  }
+
+  function initHighlights() {
+    document.querySelectorAll('.highlight-container').forEach((btn) => {
+      // Remove old listeners by cloning
+      const newBtn = btn.cloneNode(true) as HTMLElement;
+      btn.parentNode?.replaceChild(newBtn, btn);
+      newBtn.addEventListener('click', burstConfetti as EventListener);
+    });
+  }
+
+  // Initialize
+  initHighlights();
+  
+  // Re-init after Astro view transitions
+  document.addEventListener('astro:after-swap', initHighlights);
+</script>
+
+<style>
+  .highlight-wrapper {
+    @apply my-6 flex justify-center;
+  }
+
+  .highlight-container {
+    @apply relative inline-block cursor-pointer rounded-2xl border-none bg-transparent p-[2px];
+    animation: entrance 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    transition: transform 0.15s ease;
+  }
+
+  .highlight-container:hover {
+    transform: scale(1.03);
+  }
+
+  .highlight-container:active {
+    transform: scale(0.97);
+  }
+
+  .highlight-bg {
+    @apply absolute inset-0 rounded-2xl;
+    animation: shimmer 3s ease-in-out infinite;
+    background-size: 200% 100%;
+  }
+
+  .highlight-content {
+    @apply relative rounded-2xl bg-white/90 px-6 py-3 backdrop-blur-sm dark:bg-black/80;
+  }
+
+  .highlight-text {
+    @apply bg-gradient-to-r from-pink-600 via-rose-600 to-amber-600 bg-clip-text text-xl font-bold text-transparent dark:from-pink-400 dark:via-rose-400 dark:to-amber-400;
+    animation: text-shimmer 3s ease-in-out infinite;
+    background-size: 200% 100%;
+  }
+
+  @keyframes entrance {
+    0% {
+      opacity: 0;
+      transform: scale(0.8) translateY(10px);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  @keyframes shimmer {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  @keyframes text-shimmer {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  /* Hover enhancement */
+  .highlight-container:hover .highlight-bg {
+    animation-duration: 1.5s;
+  }
+</style>
