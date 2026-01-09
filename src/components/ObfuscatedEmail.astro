@@ -1,0 +1,77 @@
+---
+interface Props {
+  email: string;
+  class?: string;
+}
+
+const { email, class: className } = Astro.props;
+
+const [user, domain] = email.split('@');
+const reversedUser = user.split('').reverse().join('');
+const reversedDomain = domain.split('').reverse().join('');
+---
+
+<span
+  class:list={["obfuscated-email cursor-pointer", className]}
+  data-u={reversedUser}
+  data-d={reversedDomain}
+  role="button"
+  tabindex="0"
+  aria-label="Click to reveal email address"
+>
+  <span class="email-placeholder">📧 Click to reveal</span>
+  <span class="email-revealed hidden"></span>
+</span>
+
+<script>
+  function initObfuscatedEmails() {
+    document.querySelectorAll('.obfuscated-email').forEach((el) => {
+      const element = el as HTMLElement;
+      const placeholder = element.querySelector('.email-placeholder') as HTMLElement;
+      const revealed = element.querySelector('.email-revealed') as HTMLElement;
+      
+      if (!placeholder || !revealed) return;
+      
+      const handleReveal = (e: Event) => {
+        e.preventDefault();
+        
+        const u = element.dataset.u?.split('').reverse().join('') || '';
+        const d = element.dataset.d?.split('').reverse().join('') || '';
+        const email = `${u}@${d}`;
+        
+        revealed.innerHTML = `<a href="mailto:${email}" class="underline underline-offset-2">${email}</a>`;
+        placeholder.classList.add('hidden');
+        revealed.classList.remove('hidden');
+    
+        element.removeEventListener('click', handleReveal);
+        element.removeEventListener('keydown', handleKeydown);
+        element.removeAttribute('role');
+        element.removeAttribute('tabindex');
+        element.classList.remove('cursor-pointer');
+      };
+      
+      const handleKeydown = (e: KeyboardEvent) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          handleReveal(e);
+        }
+      };
+      
+      element.addEventListener('click', handleReveal);
+      element.addEventListener('keydown', handleKeydown as EventListener);
+    });
+  }
+
+  initObfuscatedEmails();
+  document.addEventListener('astro:after-swap', initObfuscatedEmails);
+</script>
+
+<style>
+  .obfuscated-email {
+    @apply transition-colors duration-200;
+  }
+  
+  .email-placeholder {
+    @apply text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white;
+  }
+</style>
+

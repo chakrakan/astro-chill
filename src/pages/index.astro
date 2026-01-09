@@ -4,10 +4,11 @@ import Container from "@components/Container.astro";
 import { SITE, HOME, SOCIALS } from "@consts";
 import ArrowCard from "@components/ArrowCard.astro";
 import Link from "@components/Link.astro";
+import ObfuscatedEmail from "@components/ObfuscatedEmail.astro";
 import { getCollection } from "astro:content";
 import type { CollectionEntry } from "astro:content";
 import { Image } from "astro:assets";
-import KaniskProfile from "@assets/kanisk_profile.webp";
+import KaniskProfile from "@assets/kanisk-profile-2023.webp";
 
 type BlogEntry = CollectionEntry<"blog">;
 type ProjectEntry = CollectionEntry<"projects">;
@@ -45,7 +46,7 @@ const projects: ProjectEntry[] = (
         <section class="text-center">
           <article>
               <p class="animate-reveal">
-                A Software Engineer based in Toronto, Canada 🇨🇦
+                A Software Engineer currently based in Toronto, Canada 🇨🇦
               </p>
               <p class="animate-reveal">
                 Welcome to my corner of the Internet where 
@@ -117,12 +118,7 @@ const projects: ProjectEntry[] = (
               ))
             }
             <li class="line-clamp-1">
-              <Link
-                href={`mailto:${SITE.EMAIL}`}
-                aria-label={`Email ${SITE.TITLE}`}
-              >
-                {SITE.EMAIL}
-              </Link>
+              <ObfuscatedEmail email={SITE.EMAIL} />
             </li>
           </ul>
         </section>

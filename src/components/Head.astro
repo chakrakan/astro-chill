@@ -147,9 +147,12 @@ const { title, description, image = "/social-card.png" } = Astro.props;
     const animateElements = document.querySelectorAll(".animate");
 
     const onHomePage = window.location.pathname === "/";
+    const hasVisitedHome = localStorage.getItem("hasVisitedHome");
+    const shouldAnimate = onHomePage && !hasVisitedHome;
 
-    let revealDuration = onHomePage ? 1000 : 0;
-    let revealDelay = onHomePage ? 500 : 0;
+    let revealDuration = shouldAnimate ? 1000 : 0;
+    let revealDelay = shouldAnimate ? 500 : 0;
+    let animateDelay = shouldAnimate ? 100 : 0;
     
     headerTextReveals.forEach((element, index) => {
       setTimeout(() => {
@@ -162,8 +165,12 @@ const { title, description, image = "/social-card.png" } = Astro.props;
     animateElements.forEach((element, index) => {
       setTimeout(() => {
         element.classList.add("show");
-      }, totalRevealTime + index * 100);
+      }, totalRevealTime + index * animateDelay);
     });
+
+    if (onHomePage && !hasVisitedHome) {
+      localStorage.setItem("hasVisitedHome", "true");
+    }
   }
 
   function onScroll() {

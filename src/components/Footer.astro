@@ -17,7 +17,8 @@ import BackToTop from "@components/BackToTop.astro";
         <button
           id="light-theme-button"
           aria-label="Light theme"
-          class="group flex size-9 items-center justify-center rounded border border-black/15 hover:bg-black/5 focus-visible:bg-black/5 dark:border-white/20 dark:hover:bg-white/5 dark:focus-visible:bg-white/5"
+          class="theme-button group relative flex size-9 items-center justify-center rounded border border-black/15 hover:bg-black/5 focus-visible:bg-black/5 dark:border-white/20 dark:hover:bg-white/5 dark:focus-visible:bg-white/5"
+          data-tooltip="Light theme"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -45,7 +46,8 @@ import BackToTop from "@components/BackToTop.astro";
         <button
           id="dark-theme-button"
           aria-label="Dark theme"
-          class="group flex size-9 items-center justify-center rounded border border-black/15 hover:bg-black/5 focus-visible:bg-black/5 dark:border-white/20 dark:hover:bg-white/5 dark:focus-visible:bg-white/5"
+          class="theme-button group relative flex size-9 items-center justify-center rounded border border-black/15 hover:bg-black/5 focus-visible:bg-black/5 dark:border-white/20 dark:hover:bg-white/5 dark:focus-visible:bg-white/5"
+          data-tooltip="Dark theme"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -65,7 +67,8 @@ import BackToTop from "@components/BackToTop.astro";
         <button
           id="system-theme-button"
           aria-label="System theme"
-          class="group flex size-9 items-center justify-center rounded border border-black/15 hover:bg-black/5 focus-visible:bg-black/5 dark:border-white/20 dark:hover:bg-white/5 dark:focus-visible:bg-white/5"
+          class="theme-button group relative flex size-9 items-center justify-center rounded border border-black/15 hover:bg-black/5 focus-visible:bg-black/5 dark:border-white/20 dark:hover:bg-white/5 dark:focus-visible:bg-white/5"
+          data-tooltip="System theme"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -84,19 +87,52 @@ import BackToTop from "@components/BackToTop.astro";
             <line x1="12" y1="17" x2="12" y2="21"></line>
           </svg>
         </button>
-        <button
-          id="system-theme-button"
-          aria-label="System theme"
-          class="group flex size-9 items-center justify-center rounded border border-black/15 hover:bg-black/5 focus-visible:bg-black/5 dark:border-white/20 dark:hover:bg-white/5 dark:focus-visible:bg-white/5"
+        <a
+          id="rss-button"
+          aria-label="RSS feed"
+          href="/rss.xml"
+          class="theme-button group relative flex size-9 items-center justify-center rounded border border-black/15 hover:bg-black/5 focus-visible:bg-black/5 dark:border-white/20 dark:hover:bg-white/5 dark:focus-visible:bg-white/5"
+          data-tooltip="RSS feed"
         >
-          <a
-            class="transition-colors duration-300 ease-in-out group-hover:animate-pulse group-hover:stroke-black group-focus-visible:animate-pulse group-focus-visible:stroke-black group-hover:dark:stroke-white dark:group-focus-visible:stroke-white" 
-            href='/rss.xml'
-          >
-          RSS
-        </a>
-        </button> 
+          <span class="transition-colors duration-300 ease-in-out group-hover:animate-pulse group-hover:text-black group-focus-visible:animate-pulse group-focus-visible:text-black group-hover:dark:text-white dark:group-focus-visible:text-white">
+            RSS
+          </span>
+        </a> 
       </div>
     </div>
   </Container>
 </footer>
+
+<style>
+  .theme-button::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-4px);
+    padding: 4px 8px;
+    background-color: rgb(0 0 0 / 0.9);
+    color: white;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    border-radius: 4px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+    z-index: 50;
+    margin-bottom: 4px;
+  }
+
+  .theme-button:hover::after,
+  .theme-button:focus-visible::after {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .theme-button::after {
+      background-color: rgb(255 255 255 / 0.9);
+      color: black;
+    }
+  }
+</style>
