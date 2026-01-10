@@ -1,0 +1,94 @@
+---
+interface Props {
+  title?: string;
+}
+
+const { title = "Spoiler Warning" } = Astro.props;
+---
+
+<div class="spoiler-container group">
+  <button
+    class="spoiler-toggle w-full rounded-lg border-2 border-dashed border-red-300 bg-red-50 px-4 py-3 text-left transition-all duration-300 hover:border-red-400 hover:bg-red-100 dark:border-red-800 dark:bg-red-950/30 dark:hover:border-red-700 dark:hover:bg-red-950/50"
+    aria-expanded="false"
+  >
+    <div class="flex items-center gap-3">
+      <span class="spoiler-icon text-2xl transition-transform duration-300">🙈</span>
+      <div>
+        <div class="font-semibold text-red-700 dark:text-red-400">{title}</div>
+        <div class="text-sm text-red-600/80 dark:text-red-400/70">
+          Click to reveal hidden content
+        </div>
+      </div>
+      <svg
+        class="spoiler-chevron ml-auto size-5 text-red-500 transition-transform duration-300"
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
+    </div>
+  </button>
+  <div
+    class="spoiler-content grid grid-rows-[0fr] transition-all duration-500 ease-out"
+  >
+    <div class="overflow-hidden">
+      <div class="pt-4">
+        <slot />
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .spoiler-container.revealed .spoiler-toggle {
+    border-style: solid;
+    border-color: rgb(134 239 172 / 0.5);
+    background-color: rgb(220 252 231 / 0.3);
+  }
+
+  :global(.dark) .spoiler-container.revealed .spoiler-toggle {
+    border-color: rgb(34 197 94 / 0.3);
+    background-color: rgb(22 101 52 / 0.2);
+  }
+
+  .spoiler-container.revealed .spoiler-icon {
+    transform: rotate(180deg);
+  }
+
+  .spoiler-container.revealed .spoiler-chevron {
+    transform: rotate(180deg);
+  }
+
+  .spoiler-container.revealed .spoiler-content {
+    grid-template-rows: 1fr;
+  }
+</style>
+
+<script>
+  function initSpoilers() {
+    document.querySelectorAll('.spoiler-container').forEach((container) => {
+      const toggle = container.querySelector('.spoiler-toggle');
+      const icon = container.querySelector('.spoiler-icon');
+      
+      toggle?.addEventListener('click', () => {
+        const isRevealed = container.classList.toggle('revealed');
+        toggle.setAttribute('aria-expanded', String(isRevealed));
+        
+        // Update icon
+        if (icon) {
+          icon.textContent = isRevealed ? '🐵' : '🙈';
+        }
+      });
+    });
+  }
+
+  // Initialize on page load
+  initSpoilers();
+
+  // Re-initialize after Astro page transitions
+  document.addEventListener('astro:after-swap', initSpoilers);
+</script>
+

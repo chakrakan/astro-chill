@@ -28,19 +28,51 @@ const years = Object.keys(posts).sort((a, b) => parseInt(b) - parseInt(a));
 <Layout title={BLOG.TITLE} description={BLOG.DESCRIPTION}>
   <Container>
     <div class="space-y-10">
-      <div class="space-y-4">
+      <div class="space-y-6">
         {
           years.map((year) => (
-            <section class="animate space-y-4">
-              <div class="font-semibold text-black dark:text-white">{year}</div>
-              <div>
-                <ul class="not-prose flex flex-col gap-4">
-                  {posts[year].map((post) => (
-                    <li>
-                      <ArrowCard entry={post} />
-                    </li>
-                  ))}
-                </ul>
+            <section class="animate year-section" data-year={year}>
+              {/* Collapsible Header */}
+              <button
+                class="year-toggle w-full flex items-center justify-between gap-2 py-3 px-4 rounded-lg border border-black/10 dark:border-white/10 transition-colors duration-200 hover:bg-black/5 dark:hover:bg-white/5"
+                aria-expanded="true"
+                aria-controls={`content-${year}`}
+              >
+                <div class="flex items-center gap-3 font-semibold text-black dark:text-white">
+                  <span class="text-xl">📅</span>
+                  <span>{year}</span>
+                  <span class="text-sm font-normal text-black/60 dark:text-white/60">
+                    ({posts[year].length} {posts[year].length === 1 ? 'post' : 'posts'})
+                  </span>
+                </div>
+                <svg
+                  class="year-chevron size-5 text-black/40 dark:text-white/40 transition-transform duration-300"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              
+              {/* Collapsible Content */}
+              <div 
+                id={`content-${year}`}
+                class="year-content grid grid-rows-[1fr] transition-all duration-300 ease-out"
+              >
+                <div class="overflow-hidden">
+                  <div class="px-4 py-4">
+                    <ul class="not-prose flex flex-col gap-4">
+                      {posts[year].map((post) => (
+                        <li>
+                          <ArrowCard entry={post} />
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
               </div>
             </section>
           ))
@@ -49,3 +81,73 @@ const years = Object.keys(posts).sort((a, b) => parseInt(b) - parseInt(a));
     </div>
   </Container>
 </Layout>
+
+<style>
+  .year-section.collapsed .year-content {
+    grid-template-rows: 0fr;
+  }
+  
+  .year-section.collapsed .year-chevron {
+    transform: rotate(-90deg);
+  }
+</style>
+
+<script>
+  const STORAGE_KEY = 'blog-collapsed-years';
+
+  function getCollapsedYears(): string[] {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveCollapsedYears(years: string[]) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(years));
+    } catch {
+      // localStorage not available
+    }
+  }
+
+  function initCollapsibleYears() {
+    const collapsedYears = getCollapsedYears();
+    
+    document.querySelectorAll('.year-section').forEach((section) => {
+      const year = (section as HTMLElement).dataset.year;
+      const toggle = section.querySelector('.year-toggle');
+      
+      if (!year || !toggle) return;
+      
+      // Restore collapsed state from localStorage
+      if (collapsedYears.includes(year)) {
+        section.classList.add('collapsed');
+        toggle.setAttribute('aria-expanded', 'false');
+      }
+      
+      // Handle toggle click
+      toggle.addEventListener('click', () => {
+        const isCollapsed = section.classList.toggle('collapsed');
+        toggle.setAttribute('aria-expanded', String(!isCollapsed));
+        
+        // Update localStorage
+        const current = getCollapsedYears();
+        if (isCollapsed) {
+          if (!current.includes(year)) {
+            saveCollapsedYears([...current, year]);
+          }
+        } else {
+          saveCollapsedYears(current.filter(y => y !== year));
+        }
+      });
+    });
+  }
+
+  // Initialize on page load
+  initCollapsibleYears();
+  
+  // Re-initialize after Astro page transitions
+  document.addEventListener('astro:after-swap', initCollapsibleYears);
+</script>

@@ -1,0 +1,108 @@
+---
+interface PlaceData {
+  country: string;
+  city?: string;
+  lat: number;
+  lng: number;
+}
+
+interface Props {
+  places: PlaceData[];
+}
+
+const { places } = Astro.props;
+
+// Get unique countries for the tag list
+const uniqueCountries = [...new Set(places.map(p => p.country))];
+---
+
+<div class="travel-map-container">
+  <div 
+    id="travel-map" 
+    class="h-[400px] w-full rounded-xl border border-black/10 dark:border-white/10 overflow-hidden"
+    data-places={JSON.stringify(places)}
+  >
+    <div class="flex h-full items-center justify-center bg-neutral-100 dark:bg-neutral-800">
+      <div class="text-center">
+        <div class="text-4xl mb-2">🌍</div>
+        <div class="text-sm text-black/60 dark:text-white/60">Loading map...</div>
+      </div>
+    </div>
+  </div>
+  {places.length === 0 && (
+    <p class="mt-2 text-center text-sm text-black/50 dark:text-white/50">
+      No places added yet. Add locations to VISITED_PLACES in consts.ts!
+    </p>
+  )}
+  {/* Country/city list below the map */}
+  {places.length > 0 && (
+    <div class="mt-4 flex flex-wrap gap-2">
+      {places.map((place) => (
+        <span class="inline-flex items-center gap-1.5 rounded-full bg-black/5 px-3 py-1 text-sm dark:bg-white/10">
+          <span>📍</span>
+          <span>{place.city ? `${place.city}, ${place.country}` : place.country}</span>
+        </span>
+      ))}
+    </div>
+  )}
+</div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+<style is:global>
+  .leaflet-popup-content-wrapper {
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  }
+  
+  .leaflet-popup-content {
+    margin: 12px 16px;
+  }
+  
+  .place-popup {
+    text-align: center;
+    min-width: 120px;
+  }
+  
+  .place-popup h3 {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #1a1a1a;
+    margin: 0;
+  }
+  
+  .place-popup .city {
+    font-size: 0.85rem;
+    color: #444;
+    margin-top: 2px;
+  }
+  
+  .place-popup .visited {
+    font-size: 0.75rem;
+    color: #16a34a;
+    margin-top: 4px;
+  }
+
+  /* Custom marker styling */
+  .place-marker {
+    background: transparent;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+  }
+</style>
+
+<script>
+  import { initTravelMap } from '@lib/leaflet-map';
+
+  function init() {
+    initTravelMap('travel-map');
+  }
+
+  init();
+  document.addEventListener('astro:after-swap', init);
+</script>
+

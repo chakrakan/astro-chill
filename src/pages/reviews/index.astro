@@ -1,0 +1,208 @@
+---
+import { getCollection } from "astro:content";
+import Layout from "@layouts/Layout.astro";
+import Container from "@components/Container.astro";
+import ReviewCard from "@components/ReviewCard.astro";
+import { REVIEWS, REVIEW_CATEGORIES } from "@consts";
+
+const allReviews = (await getCollection("reviews"))
+  .filter((item) => !item.data.draft)
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+const reviewsByCategory = Object.keys(REVIEW_CATEGORIES).reduce(
+  (acc, category) => {
+    acc[category] = allReviews.filter((item) => item.data.category === category);
+    return acc;
+  },
+  {} as Record<string, typeof allReviews>
+);
+
+const categoriesWithItems = Object.entries(reviewsByCategory)
+  .filter(([_, items]) => items.length > 0)
+  .map(([category]) => category);
+---
+
+<Layout title={REVIEWS.TITLE} description={REVIEWS.DESCRIPTION}>
+  <Container>
+    <div class="space-y-6">
+        {
+          categoriesWithItems.length === 0 ? (
+            <div class="animate text-center py-10">
+              <p class="text-black/60 dark:text-white/60">
+                No reviews added yet. Check back soon!
+              </p>
+            </div>
+          ) : (
+            categoriesWithItems.map((category) => {
+              const categoryInfo = REVIEW_CATEGORIES[category as keyof typeof REVIEW_CATEGORIES];
+              const items = reviewsByCategory[category];
+              const isMediaCategory = category === "movies" || category === "tv-shows";
+              
+              return (
+                <section 
+                  class="animate category-section" 
+                  data-category={category}
+                >
+                  {/* Collapsible Header */}
+                  <button
+                    class="category-toggle w-full flex items-center justify-between gap-2 py-3 px-4 rounded-lg border border-black/10 dark:border-white/10 transition-colors duration-200 hover:bg-black/5 dark:hover:bg-white/5"
+                    aria-expanded="true"
+                    aria-controls={`content-${category}`}
+                  >
+                    <div class="flex items-center gap-2 font-semibold text-black dark:text-white">
+                      <span class="text-xl">{categoryInfo.emoji}</span>
+                      <span>{categoryInfo.label}</span>
+                      <span class="text-sm font-normal text-black/60 dark:text-white/60">
+                        ({items.length})
+                      </span>
+                    </div>
+                    <svg
+                      class="category-chevron size-5 text-black/40 dark:text-white/40 transition-transform duration-300"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </button>
+                  
+                  {/* Collapsible Content */}
+                  <div 
+                    id={`content-${category}`}
+                    class="category-content grid grid-rows-[1fr] transition-all duration-300 ease-out"
+                  >
+                    <div class="overflow-hidden">
+                      <div class="px-4 py-4">
+                        {/* Grid layout for movies/TV with poster art */}
+                        {isMediaCategory ? (
+                          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                            {items.map((item) => (
+                              <a
+                                href={`/reviews/${item.slug}`}
+                                class="group relative aspect-[2/3] overflow-hidden rounded-lg border border-black/10 bg-neutral-100 dark:border-white/10 dark:bg-neutral-800 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl"
+                              >
+                                {item.data.image ? (
+                                  <img
+                                    src={item.data.image}
+                                    alt={item.data.title}
+                                    class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                  />
+                                ) : (
+                                  <div class="flex h-full items-center justify-center text-6xl">
+                                    {category === "movies" ? "🎬" : "📺"}
+                                  </div>
+                                )}
+                                <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                                <div class="absolute bottom-0 left-0 right-0 p-3 translate-y-full transition-transform duration-300 group-hover:translate-y-0">
+                                  <div class="font-semibold text-white text-sm line-clamp-2">
+                                    {item.data.title}
+                                  </div>
+                                  {item.data.year && (
+                                    <div class="text-white/70 text-xs">{item.data.year}</div>
+                                  )}
+                                  {item.data.rating && (
+                                    <div class="text-amber-400 text-xs mt-1">
+                                      {"★".repeat(item.data.rating)}{"☆".repeat(5 - item.data.rating)}
+                                    </div>
+                                  )}
+                                </div>
+                              </a>
+                            ))}
+                          </div>
+                        ) : (
+                          <ul class="not-prose flex flex-col gap-4">
+                            {items.map((item) => (
+                              <li>
+                                <ReviewCard entry={item} />
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              );
+            })
+          )
+        }
+      </div>
+  </Container>
+</Layout>
+
+<style>
+  .category-section.collapsed .category-content {
+    grid-template-rows: 0fr;
+  }
+  
+  .category-section.collapsed .category-chevron {
+    transform: rotate(-90deg);
+  }
+  
+  .category-section.collapsed .category-toggle {
+    margin-bottom: 0;
+  }
+</style>
+
+<script>
+  const STORAGE_KEY = 'reviews-collapsed-sections';
+
+  function getCollapsedSections(): string[] {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveCollapsedSections(sections: string[]) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(sections));
+    } catch {
+      // localStorage not available
+    }
+  }
+
+  function initCollapsibleSections() {
+    const collapsedSections = getCollapsedSections();
+    
+    document.querySelectorAll('.category-section').forEach((section) => {
+      const category = (section as HTMLElement).dataset.category;
+      const toggle = section.querySelector('.category-toggle');
+      
+      if (!category || !toggle) return;
+      
+      // Restore collapsed state from localStorage
+      if (collapsedSections.includes(category)) {
+        section.classList.add('collapsed');
+        toggle.setAttribute('aria-expanded', 'false');
+      }
+      
+      // Handle toggle click
+      toggle.addEventListener('click', () => {
+        const isCollapsed = section.classList.toggle('collapsed');
+        toggle.setAttribute('aria-expanded', String(!isCollapsed));
+        
+        // Update localStorage
+        const current = getCollapsedSections();
+        if (isCollapsed) {
+          if (!current.includes(category)) {
+            saveCollapsedSections([...current, category]);
+          }
+        } else {
+          saveCollapsedSections(current.filter(c => c !== category));
+        }
+      });
+    });
+  }
+
+  // Initialize on page load
+  initCollapsibleSections();
+  
+  // Re-initialize after Astro page transitions
+  document.addEventListener('astro:after-swap', initCollapsibleSections);
+</script>
+

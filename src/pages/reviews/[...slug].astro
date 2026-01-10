@@ -1,0 +1,259 @@
+---
+import { type CollectionEntry, getCollection } from "astro:content";
+import Layout from "@layouts/Layout.astro";
+import Container from "@components/Container.astro";
+import FormattedDate from "@components/FormattedDate.astro";
+import BackToPrevious from "@components/BackToPrevious.astro";
+import Link from "@components/Link.astro";
+import { REVIEW_CATEGORIES } from "@consts";
+
+export async function getStaticPaths() {
+  const reviews = (await getCollection("reviews"))
+    .filter((item) => !item.data.draft)
+    .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+  return reviews.map((item) => ({
+    params: { slug: item.slug },
+    props: item,
+  }));
+}
+
+type Props = CollectionEntry<"reviews">;
+
+const item = Astro.props;
+const { Content } = await item.render();
+const category = REVIEW_CATEGORIES[item.data.category];
+const isMediaCategory = item.data.category === "movies" || item.data.category === "tv-shows";
+const isRestaurant = item.data.category === "restaurants";
+---
+
+<Layout title={item.data.title} description={item.data.description}>
+  <Container>
+    <div class="animate">
+      <BackToPrevious href="/reviews">Back to reviews</BackToPrevious>
+    </div>
+
+    {/* Movies/TV Shows Layout - Poster + Info Side by Side */}
+    {isMediaCategory && (
+      <div class="my-10">
+        <div class="flex flex-col sm:flex-row gap-6">
+          {/* Poster */}
+          {item.data.image ? (
+            <div class="flex-shrink-0">
+              <img
+                src={item.data.image}
+                alt={item.data.title}
+                class="w-full sm:w-48 md:w-56 rounded-lg shadow-lg"
+              />
+            </div>
+          ) : (
+            <div class="flex-shrink-0 w-full sm:w-48 md:w-56 aspect-[2/3] rounded-lg bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-6xl">
+              {item.data.category === "movies" ? "🎬" : "📺"}
+            </div>
+          )}
+          
+          {/* Info */}
+          <div class="flex-1 space-y-3">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="inline-flex items-center gap-1 rounded-full bg-black/5 px-2 py-0.5 text-xs dark:bg-white/10">
+                <span>{category.emoji}</span>
+                <span>{category.label}</span>
+              </span>
+              {item.data.year && (
+                <span class="text-sm text-black/60 dark:text-white/60">
+                  {item.data.year}
+                </span>
+              )}
+              {item.data.genre && (
+                <span class="text-sm text-black/60 dark:text-white/60">
+                  • {item.data.genre}
+                </span>
+              )}
+            </div>
+            
+            <h1 class="text-3xl font-semibold text-black dark:text-white">
+              {item.data.title}
+            </h1>
+            
+            {item.data.rating && (
+              <div class="flex items-center gap-2">
+                <span class="text-lg text-amber-500 dark:text-amber-400">
+                  {"★".repeat(item.data.rating)}{"☆".repeat(5 - item.data.rating)}
+                </span>
+                <span class="text-sm text-black/60 dark:text-white/60">
+                  ({item.data.rating}/5)
+                </span>
+              </div>
+            )}
+            
+            <p class="text-black/70 dark:text-white/70">
+              {item.data.description}
+            </p>
+            
+            <div class="flex items-center gap-4 pt-2">
+              {item.data.link && (
+                <Link href={item.data.link} external>
+                  View on IMDB →
+                </Link>
+              )}
+              <span class="text-xs text-black/50 dark:text-white/50">
+                Added <FormattedDate date={item.data.date} />
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Restaurant Layout - With Location Map */}
+    {isRestaurant && (
+      <div class="my-10 space-y-4">
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <span class="inline-flex items-center gap-1 rounded-full bg-black/5 px-2 py-0.5 text-xs dark:bg-white/10">
+            <span>{category.emoji}</span>
+            <span>{category.label}</span>
+          </span>
+          {item.data.location?.city && (
+            <>
+              <span class="text-black/40 dark:text-white/40">•</span>
+              <span class="text-sm text-black/60 dark:text-white/60">
+                📍 {item.data.location.city}{item.data.location.country ? `, ${item.data.location.country}` : ''}
+              </span>
+            </>
+          )}
+          <span class="text-black/40 dark:text-white/40">•</span>
+          <div class="text-sm text-black/60 dark:text-white/60">
+            Added <FormattedDate date={item.data.date} />
+          </div>
+        </div>
+
+        <h1 class="text-3xl font-semibold text-black dark:text-white">
+          {item.data.title}
+        </h1>
+
+        {item.data.rating && (
+          <div class="flex items-center gap-2">
+            <span class="text-lg text-amber-500 dark:text-amber-400">
+              {"★".repeat(item.data.rating)}{"☆".repeat(5 - item.data.rating)}
+            </span>
+            <span class="text-sm text-black/60 dark:text-white/60">
+              ({item.data.rating}/5)
+            </span>
+          </div>
+        )}
+
+        {item.data.image && (
+          <img
+            src={item.data.image}
+            alt={item.data.title}
+            class="rounded-lg max-h-80 object-cover w-full"
+          />
+        )}
+
+        {item.data.link && (
+          <div>
+            <Link href={item.data.link} external>
+              View on Google Maps →
+            </Link>
+          </div>
+        )}
+
+        {/* Mini map for single restaurant */}
+        {item.data.location && (
+          <div 
+            id="restaurant-map"
+            class="h-[200px] w-full rounded-lg border border-black/10 dark:border-white/10 overflow-hidden"
+            data-lat={item.data.location.lat}
+            data-lng={item.data.location.lng}
+            data-title={item.data.title}
+          >
+            <div class="flex h-full items-center justify-center bg-neutral-100 dark:bg-neutral-800">
+              <div class="text-4xl">📍</div>
+            </div>
+          </div>
+        )}
+      </div>
+    )}
+
+    {/* Default Layout - Books, Games, etc */}
+    {!isMediaCategory && !isRestaurant && (
+      <div class="my-10 space-y-1">
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <span class="inline-flex items-center gap-1 rounded-full bg-black/5 px-2 py-0.5 text-xs dark:bg-white/10">
+            <span>{category.emoji}</span>
+            <span>{category.label}</span>
+          </span>
+          &bull;
+          <div class="font-base text-sm">
+            Added <FormattedDate date={item.data.date} />
+          </div>
+          {item.data.rating && (
+            <>
+              &bull;
+              <span class="text-sm text-amber-500 dark:text-amber-400">
+                {"★".repeat(item.data.rating)}{"☆".repeat(5 - item.data.rating)}
+              </span>
+            </>
+          )}
+        </div>
+        <h1 class="text-3xl font-semibold text-black dark:text-white">
+          {item.data.title}
+        </h1>
+        {item.data.link && (
+          <div class="pt-2">
+            <Link href={item.data.link} external>
+              View on external site →
+            </Link>
+          </div>
+        )}
+        {item.data.image && (
+          <div class="pt-4">
+            <img
+              src={item.data.image}
+              alt={item.data.title}
+              class="rounded-lg max-h-80 object-cover"
+            />
+          </div>
+        )}
+      </div>
+    )}
+
+    <article class="animate">
+      <Content components={{ }} />
+    </article>
+  </Container>
+</Layout>
+
+{/* Mini map script for restaurant detail page */}
+{isRestaurant && item.data.location && (
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script>
+    import { initSingleLocationMap } from '@lib/leaflet-map';
+
+    function init() {
+      const mapContainer = document.getElementById('restaurant-map');
+      if (!mapContainer) return;
+
+      const lat = parseFloat(mapContainer.dataset.lat || '0');
+      const lng = parseFloat(mapContainer.dataset.lng || '0');
+      const title = mapContainer.dataset.title || '';
+
+      initSingleLocationMap('restaurant-map', lat, lng, title);
+    }
+
+    init();
+    document.addEventListener('astro:after-swap', init);
+  </script>
+  <style is:global>
+    .custom-marker {
+      background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+      border: 3px solid white;
+      border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+  </style>
+)}
+

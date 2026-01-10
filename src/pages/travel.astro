@@ -1,0 +1,48 @@
+---
+import Layout from "@layouts/Layout.astro";
+import Container from "@components/Container.astro";
+import TravelMap from "@components/TravelMap.astro";
+import { VISITED_PLACES } from "@consts";
+
+// Get stats from VISITED_PLACES
+const placesCount = VISITED_PLACES.length as number;
+const uniqueCountries = [...new Set(VISITED_PLACES.map(p => p.country))].length;
+---
+
+<Layout title="Travel" description="Places I've visited around the world">
+  <Container>
+    <div class="space-y-10">
+      <div class="space-y-4">
+        <h1 class="animate text-3xl font-semibold text-black dark:text-white">
+          Travel
+        </h1>
+        <p class="animate text-black/70 dark:text-white/70">
+          A collection of places I've had the pleasure of visiting. Each pin on the map represents a city or country that holds special memories.
+        </p>
+      </div>
+
+      {/* Interactive map showing places visited */}
+      {
+        placesCount > 0 ? (
+          <section class="animate space-y-4">
+            <div class="font-semibold text-black dark:text-white flex items-center gap-2">
+              <span>🌍</span>
+              <span>Places I've Visited</span>
+              <span class="text-sm font-normal text-black/60 dark:text-white/60">
+                ({uniqueCountries} {uniqueCountries === 1 ? 'country' : 'countries'}, {placesCount} {placesCount === 1 ? 'city' : 'cities'})
+              </span>
+            </div>
+            <TravelMap places={[...VISITED_PLACES]} />
+          </section>
+        ) : (
+          <div class="animate text-center py-10">
+            <p class="text-black/60 dark:text-white/60">
+              No places added yet. Add locations to VISITED_PLACES in consts.ts to see them here!
+            </p>
+          </div>
+        )
+      }
+    </div>
+  </Container>
+</Layout>
+
