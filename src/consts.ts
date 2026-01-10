@@ -25,6 +25,12 @@ export const PROJECTS: Metadata = {
     "A collection of arbitrary projects with links to repositories and live demos where applicable.",
 };
 
+export const FAVORITES: Metadata = {
+  TITLE: "Favorites",
+  DESCRIPTION:
+    "Spoiler-inclusive reviews of movies, TV shows, and restaurants I've experienced around the world.",
+};
+
 export const SOCIALS: Socials = [
   {
     NAME: "X (formerly Twitter)",

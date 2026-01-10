@@ -1,0 +1,162 @@
+---
+import { type CollectionEntry, getCollection } from "astro:content";
+import Layout from "@layouts/Layout.astro";
+import Container from "@components/Container.astro";
+import FormattedDate from "@components/FormattedDate.astro";
+import BackToPrevious from "@components/BackToPrevious.astro";
+
+export async function getStaticPaths() {
+    const favorites = (await getCollection("favorites"))
+        .filter((item) => !item.data.draft)
+        .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+    return favorites.map((item) => ({
+        params: { slug: item.slug },
+        props: item,
+    }));
+}
+
+type Props = CollectionEntry<"favorites">;
+
+const item = Astro.props;
+const { Content } = await item.render();
+
+const getCategoryLabel = (category: string) => {
+    switch (category) {
+        case "movies":
+            return {
+                label: "Movie Review",
+                emoji: "🎬",
+                color: "from-purple-500 to-pink-500",
+            };
+        case "tv":
+            return {
+                label: "TV Review",
+                emoji: "📺",
+                color: "from-blue-500 to-cyan-500",
+            };
+        case "restaurants":
+            return {
+                label: "Restaurant Review",
+                emoji: "🍽️",
+                color: "from-orange-500 to-red-500",
+            };
+        default:
+            return {
+                label: "Review",
+                emoji: "🎭",
+                color: "from-gray-500 to-gray-600",
+            };
+    }
+};
+
+const categoryInfo = getCategoryLabel(item.data.category);
+
+const renderStars = (rating?: number) => {
+    if (!rating) return null;
+    return "★".repeat(rating) + "☆".repeat(5 - rating);
+};
+---
+
+<Layout title={item.data.title} description={item.data.description}>
+    <Container>
+        <div class="animate">
+            <BackToPrevious href="/favorites">Back to favorites</BackToPrevious>
+        </div>
+
+        <!-- Header Section -->
+        <div class="my-10 space-y-4">
+            <!-- Category Badge -->
+            <div class="animate">
+                <span
+                    class={`inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r ${categoryInfo.color} px-3 py-1 text-sm font-medium text-white`}
+                >
+                    <span>{categoryInfo.emoji}</span>
+                    <span>{categoryInfo.label}</span>
+                </span>
+            </div>
+
+            <!-- Title -->
+            <h1
+                class="animate text-3xl font-semibold text-black dark:text-white"
+            >
+                {item.data.title}
+            </h1>
+
+            <!-- Meta Info -->
+            <div
+                class="animate flex flex-wrap items-center gap-3 text-sm text-black/60 dark:text-white/60"
+            >
+                <FormattedDate date={item.data.date} />
+
+                {
+                    item.data.rating && (
+                        <>
+                            <span>•</span>
+                            <span class="text-yellow-500">
+                                {renderStars(item.data.rating)}
+                            </span>
+                        </>
+                    )
+                }
+
+                {
+                    item.data.location && (
+                        <>
+                            <span>•</span>
+                            <span class="flex items-center gap-1">
+                                <span>📍</span>
+                                <span>{item.data.location.name}</span>
+                            </span>
+                        </>
+                    )
+                }
+            </div>
+
+            <!-- Spoiler Warning for media -->
+            {
+                (item.data.category === "movies" ||
+                    item.data.category === "tv") && (
+                    <div class="animate rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">
+                        <span class="font-medium">⚠️ Spoiler Warning:</span>{" "}
+                        This review contains major plot details and spoilers.
+                    </div>
+                )
+            }
+        </div>
+
+        <!-- Cover Image if available -->
+        {
+            item.data.image && (
+                <div class="animate mb-10">
+                    <img
+                        src={item.data.image}
+                        alt={item.data.title}
+                        class="w-full max-w-md rounded-xl shadow-lg"
+                    />
+                </div>
+            )
+        }
+
+        <!-- Content -->
+        <article class="animate">
+            <Content />
+
+            <!-- External Link -->
+            {
+                item.data.link && (
+                    <div class="mt-12">
+                        <a
+                            href={item.data.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="not-prose inline-flex items-center gap-2 rounded-lg border border-black/10 bg-neutral-100 px-4 py-2 text-sm font-medium transition-colors hover:bg-black/5 dark:border-white/10 dark:bg-neutral-800 dark:hover:bg-white/5"
+                        >
+                            <span>View on external site</span>
+                            <span>↗</span>
+                        </a>
+                    </div>
+                )
+            }
+        </article>
+    </Container>
+</Layout>

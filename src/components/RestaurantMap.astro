@@ -1,0 +1,210 @@
+---
+import type { CollectionEntry } from "astro:content";
+
+type Props = {
+    restaurants: CollectionEntry<"favorites">[];
+};
+
+const { restaurants } = Astro.props;
+
+// Filter only restaurants with valid locations
+const validRestaurants = restaurants.filter(
+    (r) => r.data.location?.lat && r.data.location?.lng,
+);
+---
+
+<div
+    class="restaurant-map-wrapper relative w-full overflow-hidden rounded-xl border border-black/10 dark:border-white/10"
+    style="isolation: isolate; z-index: 0;"
+>
+    <div
+        id="restaurant-map"
+        class="h-[400px] w-full bg-neutral-100 dark:bg-neutral-800"
+    >
+    </div>
+</div>
+
+<script
+    define:vars={{
+        restaurants: validRestaurants.map((r) => ({
+            slug: r.slug,
+            title: r.data.title,
+            description: r.data.description,
+            rating: r.data.rating,
+            location: r.data.location,
+        })),
+    }}
+>
+    // Track if map is already initialized
+    let mapInstance = null;
+
+    // Dynamically load Leaflet
+    const loadLeaflet = async () => {
+        // Add Leaflet CSS
+        if (!document.querySelector('link[href*="leaflet"]')) {
+            const link = document.createElement("link");
+            link.rel = "stylesheet";
+            link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+            document.head.appendChild(link);
+        }
+
+        // Add Leaflet JS
+        if (!window.L) {
+            await new Promise((resolve) => {
+                const script = document.createElement("script");
+                script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+                script.onload = resolve;
+                document.head.appendChild(script);
+            });
+        }
+
+        return window.L;
+    };
+
+    const initMap = async () => {
+        const L = await loadLeaflet();
+        const mapContainer = document.getElementById("restaurant-map");
+
+        if (!mapContainer || !L) return;
+
+        // Clean up existing map instance if it exists
+        if (mapInstance) {
+            mapInstance.remove();
+            mapInstance = null;
+        }
+
+        // Also check if container already has a map
+        if (mapContainer._leaflet_id) {
+            return; // Map already initialized on this container
+        }
+
+        // Create map centered on world view
+        mapInstance = L.map("restaurant-map", {
+            scrollWheelZoom: false,
+        }).setView([20, 0], 2);
+
+        // Add dark/light mode tile layer
+        const isDark = document.documentElement.classList.contains("dark");
+        const tileUrl = isDark
+            ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+            : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
+
+        L.tileLayer(tileUrl, {
+            attribution:
+                '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: "abcd",
+            maxZoom: 20,
+        }).addTo(mapInstance);
+
+        // Custom marker icon
+        const markerIcon = L.divIcon({
+            className: "custom-marker",
+            html: `<div class="w-8 h-8 bg-gradient-to-br from-orange-400 to-red-500 rounded-full border-2 border-white shadow-lg flex items-center justify-center text-white text-sm">🍽️</div>`,
+            iconSize: [32, 32],
+            iconAnchor: [16, 32],
+            popupAnchor: [0, -32],
+        });
+
+        // Add markers for each restaurant
+        const markers = [];
+        restaurants.forEach((item) => {
+            if (!item.location) return;
+
+            const marker = L.marker([item.location.lat, item.location.lng], {
+                icon: markerIcon,
+            })
+                .bindPopup(
+                    `
+          <div class="p-2 min-w-[200px]">
+            <h4 class="font-semibold text-sm mb-1">${item.title}</h4>
+            <p class="text-xs text-gray-600 mb-2">${item.location.name}</p>
+            ${item.rating ? `<p class="text-yellow-500 text-sm">${"★".repeat(item.rating)}${"☆".repeat(5 - item.rating)}</p>` : ""}
+            <a href="/favorites/${item.slug}" class="text-xs text-blue-500 hover:underline">Read review →</a>
+          </div>
+        `,
+                )
+                .addTo(mapInstance);
+            markers.push(marker);
+        });
+
+        // Fit bounds if we have markers
+        if (markers.length > 0) {
+            const group = L.featureGroup(markers);
+            mapInstance.fitBounds(group.getBounds().pad(0.5));
+        }
+
+        // Watch for dark mode changes
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.attributeName === "class") {
+                    const isDarkNow =
+                        document.documentElement.classList.contains("dark");
+                    const newTileUrl = isDarkNow
+                        ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                        : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
+
+                    // Remove old layer and add new
+                    mapInstance.eachLayer((layer) => {
+                        if (layer._url) mapInstance.removeLayer(layer);
+                    });
+
+                    L.tileLayer(newTileUrl, {
+                        attribution:
+                            "&copy; OpenStreetMap contributors &copy; CARTO",
+                        subdomains: "abcd",
+                        maxZoom: 20,
+                    }).addTo(mapInstance);
+                }
+            });
+        });
+
+        observer.observe(document.documentElement, { attributes: true });
+    };
+
+    // Initialize on page load
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initMap);
+    } else {
+        initMap();
+    }
+
+    // Re-initialize on Astro page transitions
+    document.addEventListener("astro:page-load", initMap);
+</script>
+
+<style is:global>
+    /* Contain Leaflet z-index within the map wrapper */
+    .restaurant-map-wrapper .leaflet-pane,
+    .restaurant-map-wrapper .leaflet-control,
+    .restaurant-map-wrapper .leaflet-top,
+    .restaurant-map-wrapper .leaflet-bottom {
+        z-index: auto !important;
+    }
+
+    .restaurant-map-wrapper .leaflet-container {
+        z-index: 0 !important;
+    }
+
+    .custom-marker {
+        background: transparent !important;
+        border: none !important;
+    }
+
+    .leaflet-popup-content-wrapper {
+        border-radius: 12px;
+        box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.2);
+    }
+
+    .dark .leaflet-popup-content-wrapper {
+        background: #262626;
+        color: white;
+    }
+
+    .dark .leaflet-popup-tip {
+        background: #262626;
+    }
+
+    .dark .leaflet-popup-content p {
+        color: #a3a3a3;
+    }
+</style>

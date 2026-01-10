@@ -1,0 +1,127 @@
+---
+import { getCollection } from "astro:content";
+import Layout from "@layouts/Layout.astro";
+import Container from "@components/Container.astro";
+import MediaCard from "@components/MediaCard.astro";
+import RestaurantMap from "@components/RestaurantMap.astro";
+import ArrowCard from "@components/ArrowCard.astro";
+import { FAVORITES } from "@consts";
+
+const allFavorites = (await getCollection("favorites"))
+  .filter((item) => !item.data.draft)
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+const movies = allFavorites.filter((f) => f.data.category === "movies");
+const tv = allFavorites.filter((f) => f.data.category === "tv");
+const restaurants = allFavorites.filter((f) => f.data.category === "restaurants");
+
+const categories = [
+  { id: "movies", name: "Movies", emoji: "🎬", items: movies },
+  { id: "tv", name: "TV Shows", emoji: "📺", items: tv },
+  { id: "restaurants", name: "Restaurants", emoji: "🍽️", items: restaurants },
+];
+---
+
+<Layout title={FAVORITES.TITLE} description={FAVORITES.DESCRIPTION}>
+  <Container>
+    <div class="space-y-16">
+      <!-- Page Header -->
+      <div class="animate space-y-4">
+        <h1 class="text-3xl font-bold text-black dark:text-white">
+          {FAVORITES.TITLE}
+        </h1>
+        <p class="text-black/60 dark:text-white/60">
+          {FAVORITES.DESCRIPTION}
+        </p>
+      </div>
+
+      <!-- Category Navigation -->
+      <nav class="animate flex flex-wrap gap-2">
+        {categories.map((cat) => (
+          <a
+            href={`#${cat.id}`}
+            class="rounded-full border border-black/10 bg-neutral-100 px-4 py-2 text-sm font-medium transition-colors hover:bg-black/5 dark:border-white/10 dark:bg-neutral-800 dark:hover:bg-white/5"
+          >
+            <span>{cat.emoji}</span>
+            <span class="ml-1">{cat.name}</span>
+            <span class="ml-1 text-black/40 dark:text-white/40">({cat.items.length})</span>
+          </a>
+        ))}
+      </nav>
+
+      <!-- Movies Section -->
+      {movies.length > 0 && (
+        <section id="movies" class="animate space-y-6 scroll-mt-24">
+          <div class="flex items-center gap-3">
+            <span class="text-3xl">🎬</span>
+            <h2 class="text-2xl font-semibold text-black dark:text-white">Movies</h2>
+          </div>
+          <p class="text-sm text-red-500 dark:text-red-400">
+            ⚠️ Spoiler alert: These reviews contain plot details!
+          </p>
+          <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+            {movies.map((movie) => (
+              <MediaCard entry={movie} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      <!-- TV Shows Section -->
+      {tv.length > 0 && (
+        <section id="tv" class="animate space-y-6 scroll-mt-24">
+          <div class="flex items-center gap-3">
+            <span class="text-3xl">📺</span>
+            <h2 class="text-2xl font-semibold text-black dark:text-white">TV Shows</h2>
+          </div>
+          <p class="text-sm text-red-500 dark:text-red-400">
+            ⚠️ Spoiler alert: These reviews contain plot details!
+          </p>
+          <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+            {tv.map((show) => (
+              <MediaCard entry={show} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      <!-- Restaurants Section -->
+      {restaurants.length > 0 && (
+        <section id="restaurants" class="animate space-y-6 scroll-mt-24">
+          <div class="flex items-center gap-3">
+            <span class="text-3xl">🍽️</span>
+            <h2 class="text-2xl font-semibold text-black dark:text-white">Restaurants</h2>
+          </div>
+          <p class="text-sm text-black/60 dark:text-white/60">
+            Click on markers to see details, or browse the list below
+          </p>
+          
+          <!-- World Map -->
+          <RestaurantMap restaurants={restaurants} />
+          
+          <!-- Restaurant List -->
+          <div class="mt-6 space-y-4">
+            <h3 class="font-medium text-black/80 dark:text-white/80">All Reviews</h3>
+            <ul class="not-prose flex flex-col gap-4">
+              {restaurants.map((restaurant) => (
+                <li>
+                  <ArrowCard entry={restaurant} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
+
+      <!-- Empty State -->
+      {allFavorites.length === 0 && (
+        <div class="animate py-12 text-center">
+          <p class="text-2xl">🎭</p>
+          <p class="mt-4 text-black/60 dark:text-white/60">
+            No favorites yet. Check back soon!
+          </p>
+        </div>
+      )}
+    </div>
+  </Container>
+</Layout>
