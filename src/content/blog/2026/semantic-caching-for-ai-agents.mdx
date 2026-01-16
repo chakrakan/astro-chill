@@ -1,0 +1,128 @@
+---
+title: 'Semantic Caching for AI Agents'
+date: 'Jan 15, 2026'
+description: "Thinking about making AI more cost effective, this is one of the ways."
+---
+import { Image } from "astro:assets";
+import OpenAIPricingPage from '@/assets/post-images/semantic-caching-for-ai-agents/open-ai-pricing.png';
+import InferenceBottleneck from '@/assets/post-images/semantic-caching-for-ai-agents/inference-bottleneck-chart.png';
+import AvgCostWorkflow from '@/assets/post-images/semantic-caching-for-ai-agents/avg-cost-agent-workflow.png';
+import CustomerSupportAgent from '@/assets/post-images/semantic-caching-for-ai-agents/customer-support-agent.png';
+import WalmartCache from '@/assets/post-images/semantic-caching-for-ai-agents/walmart-cache.png';
+import WalmartDecisionEngine from '@/assets/post-images/semantic-caching-for-ai-agents/walmart-decision-engine.png';
+
+## The problem
+
+Model quality is going up with new updates every now and then. 
+
+For instance, GPT 5.2 Codex just became generally available for use across tools like in Copilot/Cursor, etc. 
+
+However, if we look at [pricing pages](https://platform.openai.com/docs/pricing) for most of these companies that provide access to the models, we can see that cost per token goes up relatively with new advancements.
+
+<Image alt="Open AI Pricing Page" class="rounded-lg" src={OpenAIPricingPage} />
+
+These newer models also tend to be slower than their smaller counterparts. 
+
+> NOTE: Current top models from OpenAI, Anthropic, and Google primarily serve inferences using internal quantization for efficiency, often at 4-bit or lower precision, though exact details for proprietary API versions remain undisclosed.
+
+Now this curve is improving, but the price and latency trade-off is still the gating factor on real-world deployments.
+
+<Image alt="Inference bottleneck chart" class="rounded-lg" src={InferenceBottleneck} />
+
+Data plumbing is no longer the largest unit cost; it's actually inference. 
+
+Organizations are building RAG systems that ground an LLM's response with relevant and factual data, reduce hallucinations by inserting relevant info into the LLM context, and provide up-to-date data at runtime that the LLM has never seen before.
+
+AI agents, however, are token-hungry. By nature, they extract, plan, act, reflect, and iterate. 
+
+Agents actually use many LLM calls, they consume more tokens, add additional latency. Prompts grow in length over time.
+
+<Image alt="Avg Cost of Agent Workflows" class="rounded-lg" src={AvgCostWorkflow} />
+
+### Example Scenario
+
+Customer support agent accelerates mean time to resolution (MTTR) of open customer inquiries.
+- slow agent negatively impacts customer UX
+- customer support agents generate piles of FAQs 
+- redundant agentic RAG operations drive up infra costs $$$
+
+<Image alt="Customer Support Agent" class="rounded-lg" src={CustomerSupportAgent} />
+
+Just how many times are you going to run inference for resolution to one particular ask that is "asked" in various iterations by the user.
+
+## Enter semantic caching
+
+Now we know that caching is the attempt to reuse existing data so we don't have to make some kind of expensive transaction or a call to re-fetch the same data.
+
+However, naive (exact match) caching fails for natural language.
+
+If we rely on matching exact string data, as we do in traditional caching, the phrases users use, aka "different tokens", would need to be exactly the same to get a cache hit.
+
+This indexes on precision, but results in poor recall and low cache hit rates in the context of natural language, used for LLMs.
+
+With semantic caching, we are now searching over vectorized text with optional re-ranking. 
+This results in a higher recall and cache hit rates. However, we do have a higher risk of false positives, aka cache hits on the incorrect thing.
+
+> Vector search is the backbone of semantic caching
+
+### Challenges with semantic caching
+
+- cache effectiveness
+    - accuracy: are we serving the correct results from the cache?
+    - performance: are we hitting the cache often enough? Can we serve at scale without impacting roundtrip latency?
+- updatability: can we refresh, invalidate, or warm the semantic cache as data evolves over time?
+- observability: can we observe and measure cache hit-rate, latency, cost savings, and cache quality?
+
+In this post, we will look at 4 key metrics to measure the effectiveness of the cache hit rate:
+- frequency — given a distance threshold, what's the frequency of the hit rate? (primarily influences cost savings)
+- precision — quality of hits (reliability)
+- recall — coverage (how many possible correct results)
+- F1 Score — balance between precision and recall (single measure of overall cache effectiveness)
+
+## Improving semantic caching accuracy and performance
+
+To improve precision, we need to:
+
+1. Optimize Precision and Recall
+    - adjust and tune distance threshold
+    - use some type of cross-encoder model (reranker) which re-ranks retrieved results, or
+    - use another LLM as a reranker/validator to refine semantic search outputs
+
+    These combinations should help adjust the semantic decision boundary to balance recall/precision and reduce false positives.
+
+2. Use fuzzy matching BEFORE invoking the embeddings associated with the cache to handle typos and exact matches, saving compute.
+3. Leverage context and filters for different types of context and data types (domain specific), like specific code, artifacts, etc. basically things that bypass typical caching mechanisms.
+
+### Example case study: Walmart
+
+Walmart released a paper describing their attempt at building a production-ready semantic caching system called the "waLLMartCache".
+
+This is basically a distributed cache (redis) + decision engine + pre-loaded FAQs, which yielded the highest overall accuracy at ~89.6%.
+
+<Image alt="Walmart Cache (waLLMartCache)" class="rounded-lg" src={WalmartCache} />
+
+#### Architecture
+
+The design has a load balancer across multiple nodes. This allows them to grow the system horizontally quite easily, and add additional nodes of compute, and the cache can scale up in terms of number of operations it can serve.
+
+Secondly, they added a dual-tier storage for the cache, meaning there's both an L1 and L2 layer of storage, where L1 is the simple vector DB (retrieval) based on semantic search. And L2 is a simple in memory DB like Redis for lookups given the IDs that come from the L1 cache, find metadata in L2.
+
+Lastly is multi-tenancy. Multiple teams use the same storage infrastructure, so they can serve multiple tenants out of the same cache store.
+
+### Decision engine
+
+Next, Walmart decided to add a decision engine to improve cache precision beyond the semantic search.
+
+<Image alt="Walmart Decision Engine" class="rounded-lg" src={WalmartDecisionEngine} />
+
+In their specific case, this decision engine was mainly to handle:
+1. Code detection, and
+2. Temporal context detection
+
+In any case, if a user query comes in that involves code or time-sensitive information, it goes directly to the LLM/RAG based workflow, and avoid cache operations altogether.
+
+These are both done BEFORE semantic search happens, of course.
+
+Over the next few blog posts, we will try to build our own deep research agent with semantic caching to see what kind of improvements we can come up with.
+
+Later, we will continue to iterate upon it and add more features as we go, and learn more new topics.

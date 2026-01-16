@@ -1,0 +1,39 @@
+---
+title: 'Google Antigravity vs Cursor — One Shot Test'
+date: 'Jan 12, 2026'
+description: "My initial impressions of Google's new IDE vs Cursor"
+---
+
+Google Antigravity and Cursor are AI-powered IDEs designed for agentic coding workflows. 
+Antigravity emphasizes autonomous agents managed centrally, while Cursor offers developer-controlled
+multi-agent parallelism in a VS Code fork.
+​
+### Core Technology
+
+Antigravity uses Gemini 3 Pro exclusively with over 1 million token context, scoring high on benchmarks 
+like 1487 Elo on WebDev Arena. Cursor employs a proprietary Composer model optimized for speed, completing 
+tasks in about 30 seconds, and supports multiple models like OpenAI and Anthropic.
+
+With that said, today's comparison is going to just be the first test among various other tests that we might be able to perform.
+This one's going to be a very basic test, just the *one-shot prompt*.
+
+Given we are within an agentic development workflow revolution, and we're kind of moving deeper in this direction, I've been using Cursor heavily at work for a little over six months now.
+I have some optimizations, MCPs, and just general rules that I use. However, given this website was just sitting in the corner, ignored, there's been no special setup that's been done for this particular repository.
+
+As far as I'm concerned, this will be a test that features:
+1. Opening up the blog repository across both Anti-Gravity and Cursor.
+2. Writing a single prompt that will add multiple sections to my website. So previously it was just a blog but we will be adding the reviews and travel sections that you should see by the time this blog post is up.
+3. Going through the same process for both IDEs, and here we'll be careful to use the exact same configurations, AKA the same models and the same prompt.
+4. Compare the outputs.
+
+Anti-Gravity is currently available for public preview which gives us access to most models (with rate limits), so I didn't have to pay for that, whereas I am paying for Cursor's $20 pro plan to access the better models.
+The model I chose for both the comparisons is Claude's Opus 4.5. And as for configurations, nothing was configured on Anti-Gravity nor on Cursor. Both are completely new sessions/chats, and we treat this as the starting point for both IDEs.
+
+With that said, let's begin the review.
+
+### UI
+
+Both of these IDEs are forks of VS Code, but for some reason, and maybe this is just recency bias since I've spent more time on Cursor, I found that the UI and general experience for just overall responsiveness, clicking around, and keeping track of things, Cursor takes the cake.
+That said, of course, with Antigravity, Google is trying to redefine essentially how we go about doing modern development. There is an expected learning curve for this UI. 
+
+
