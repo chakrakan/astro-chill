@@ -66,7 +66,7 @@ This results in a higher recall and cache hit rates. However, we do have a highe
 
 > Vector search is the backbone of semantic caching
 
-<Image alt="Semantic Cache" class="rounded-lg" src={Semantic Cache} />
+<Image alt="Semantic Cache" class="rounded-lg" src={SemanticCache} />
 
 ### Challenges with semantic caching
 
@@ -126,6 +126,252 @@ In any case, if a user query comes in that involves code or time-sensitive infor
 
 These are both done BEFORE semantic search happens, of course.
 
-Over the next few blog posts, we will try to build our own deep research agent with semantic caching to see what kind of improvements we can come up with.
+## Simple semantic search example over FAQs
 
-Later, we will continue to iterate upon it and add more features as we go, and learn more new topics.
+### Load the FAQ Dataset
+
+```python
+import pandas as pd
+import numpy as np
+import time
+
+from cache.faq_data_container import FAQDataContainer
+
+faq_data = FAQDataContainer()
+faq_df = faq_data.faq_df
+test_df = faq_data.test_df
+```
+```text
+Loaded 8 FAQ entries.
+Loaded 80 test queries.
+```
+
+```python
+faq_df.head().style
+```
+<style type="text/css">
+</style>
+<table id="T_27d7f">
+  <thead>
+    <tr>
+      <th class="blank level0" >&nbsp;</th>
+      <th id="T_27d7f_level0_col0" class="col_heading level0 col0" >id</th>
+      <th id="T_27d7f_level0_col1" class="col_heading level0 col1" >question</th>
+      <th id="T_27d7f_level0_col2" class="col_heading level0 col2" >answer</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th id="T_27d7f_level0_row0" class="row_heading level0 row0" ></th>
+      <td id="T_27d7f_row0_col0" class="data row0 col0" >0</td>
+      <td id="T_27d7f_row0_col1" class="data row0 col1" >How do I get a refund?</td>
+      <td id="T_27d7f_row0_col2" class="data row0 col2" >To request a refund, visit your orders page and select **Request Refund**. Refunds are processed within 3-5 business days.</td>
+    </tr>
+    <tr>
+      <th id="T_27d7f_level0_row1" class="row_heading level0 row1" ></th>
+      <td id="T_27d7f_row1_col0" class="data row1 col0" >1</td>
+      <td id="T_27d7f_row1_col1" class="data row1 col1" >Can I reset my password?</td>
+      <td id="T_27d7f_row1_col2" class="data row1 col2" >Click **Forgot Password** on the login page and follow the email instructions. Check your spam folder if you don't see the email.</td>
+    </tr>
+    <tr>
+      <th id="T_27d7f_level0_row2" class="row_heading level0 row2" ></th>
+      <td id="T_27d7f_row2_col0" class="data row2 col0" >2</td>
+      <td id="T_27d7f_row2_col1" class="data row2 col1" >Where is my order?</td>
+      <td id="T_27d7f_row2_col2" class="data row2 col2" >Use the tracking link sent to your email after shipping. Orders typically arrive within 2-7 business days depending on your location.</td>
+    </tr>
+    <tr>
+      <th id="T_27d7f_level0_row3" class="row_heading level0 row3" ></th>
+      <td id="T_27d7f_row3_col0" class="data row3 col0" >3</td>
+      <td id="T_27d7f_row3_col1" class="data row3 col1" >How long is the warranty?</td>
+      <td id="T_27d7f_row3_col2" class="data row3 col2" >All electronic products include a 12-month warranty from the purchase date. Extended warranties are available for purchase.</td>
+    </tr>
+    <tr>
+      <th id="T_27d7f_level0_row4" class="row_heading level0 row4" ></th>
+      <td id="T_27d7f_row4_col0" class="data row4 col0" >4</td>
+      <td id="T_27d7f_row4_col1" class="data row4 col1" >Do you ship internationally?</td>
+      <td id="T_27d7f_row4_col2" class="data row4 col2" >Yes, we ship to over 50 countries worldwide. International shipping fees and delivery times vary by destination.</td>
+    </tr>
+  </tbody>
+</table>
+
+### Create Embeddings for Semantic Search
+
+```python
+from sentence_transformers import SentenceTransformer
+
+encoder = SentenceTransformer("all-mpnet-base-v2")
+
+faq_embeddings = encoder.encode(faq_df["question"].tolist())
+
+print(f"Sample (first 10 dimensions): {faq_embeddings[0][:10]}")
+```
+```text
+Sample (first 10 dimensions): [ 0.02746389  0.04248327 -0.02679515  0.03786725 -0.03876128 -0.00109464
+     -0.01158364  0.0307029  -0.00653776 -0.01955772]
+```
+
+### Implement basic cosine similarity semantic search
+
+```python
+def cosine_dist(a: np.array, b: np.array):
+    """Compute cosine distance between two sets of vectors."""
+    a_norm = np.linalg.norm(a, axis=1)
+    b_norm = np.linalg.norm(b) if b.ndim == 1 else np.linalg.norm(b, axis=1)
+    sim = np.dot(a, b) / (a_norm * b_norm)
+    return 1 - sim
+
+
+def semantic_search(query: str) -> tuple:
+    """Find the most similar FAQ question to the query."""
+    query_embedding = encoder.encode([query])[0]
+
+    distances = cosine_dist(faq_embeddings, query_embedding)
+
+    # Find the most similar question (lowest distance)
+    best_idx = int(np.argmin(distances))
+    best_distance = distances[best_idx]
+
+    return best_idx, best_distance
+```
+
+
+```python
+idx, distance = semantic_search(
+    "How long will it take to get a refund for my order?"
+)
+
+print(f"Most similar FAQ: {faq_df.iloc[idx]['question']}")
+print(f"Answer: {faq_df.iloc[idx]['answer']}")
+print(f"Cosine distance: {distance:.3f}")
+```
+```text   
+Most similar FAQ: How do I get a refund?
+Answer: To request a refund, visit your orders page and select **Request Refund**. Refunds are processed within 3-5 business days.
+    Cosine distance: 0.331
+```
+
+### Building a simple semantic cache
+
+```python
+def check_cache(query: str, distance_threshold: float = 0.3):
+    """
+    Semantic cache lookup for previously asked questions.
+    Returns a dictionary with answer if hit, None if miss.
+    """
+    idx, distance = semantic_search(query)
+
+    if distance <= distance_threshold:
+        return {
+            "prompt": faq_df.iloc[idx]["question"],
+            "response": faq_df.iloc[idx]["answer"],
+            "vector_distance": float(distance),
+        }
+
+    return None  # Cache miss
+```
+
+```python
+test_queries = [
+    "Is it possible to get a refund?",
+    "I want my money back",
+    "What are your business hours?",  # Should miss
+]
+
+for query in test_queries:
+    result = check_cache(query, distance_threshold=0.3)
+    if result:
+        print(f"✅ HIT: '{query}' -> {result['response'][:50]}...")
+        print(f"   Distance: {result['vector_distance']:.3f}\n")
+    else:
+        print(f"❌ MISS: '{query}'\n")
+```
+```text
+✅ HIT: 'Is it possible to get a refund?' -> To request a refund, visit your orders page and se...
+    Distance: 0.262
+
+❌ MISS: 'I want my money back'
+
+❌ MISS: 'What are your business hours?'
+```
+
+### Adding entries to the cache
+
+```python
+def add_to_cache(question: str, answer: str):
+    """
+    Add a new Q&A pair to our simple in-memory cache.
+    Extends both the DataFrame and embeddings matrix.
+    """
+    global faq_df, faq_embeddings
+
+    new_row = pd.DataFrame({"question": [question], "answer": [answer]})
+    faq_df = pd.concat([faq_df, new_row], ignore_index=True)
+
+    # Generate embedding for the new question
+    new_embedding = encoder.encode([question])
+
+    # Add to embeddings matrix
+    faq_embeddings = np.vstack([faq_embeddings, new_embedding])
+
+    print(f"✅ Added to cache: '{question}'")
+```
+
+```python
+print("Original cache size:", len(faq_df))
+
+new_entries = [
+    (
+        "What are your business hours?",
+        "We're open Monday-Friday 9 AM to 6 PM EST. Weekend support is available for urgent issues.",
+    ),
+    (
+        "Do you have a mobile app?",
+        "Yes! Our mobile app is available on both iOS and Android. Search for 'CustomerApp' in your app store.",
+    ),
+    (
+        "How do I update my payment method?",
+        "Go to Account Settings > Payment Methods to add, edit, or remove payment options.",
+    ),
+]
+
+for question, answer in new_entries:
+    add_to_cache(question, answer)
+
+print(f"\nCache now has {len(faq_df)} total entries")
+```
+```text
+Original cache size: 8
+✅ Added to cache: 'What are your business hours?'
+✅ Added to cache: 'Do you have a mobile app?'
+✅ Added to cache: 'How do I update my payment method?'
+
+Cache now has 11 total entries
+```
+
+```python
+test_extended_queries = [
+    "What time do you open?",  
+    "Is there a phone app?", 
+    "How can I change my payment method?",
+]
+
+for query in test_extended_queries:
+    result = check_cache(query, distance_threshold=0.3)
+    if result:
+        print(f"✅ HIT: '{query}' -> {result['response'][:50]}...")
+        print(f"   Distance: {result['vector_distance']:.3f}\n")
+    else:
+        print(f"❌ MISS: '{query}'\n")
+```
+```text
+✅ HIT: 'What time do you open?' -> We're open Monday-Friday 9 AM to 6 PM EST. Weekend...
+    Distance: 0.289
+
+✅ HIT: 'Is there a phone app?' -> Yes! Our mobile app is available on both iOS and A...
+    Distance: 0.265
+
+✅ HIT: 'How can I change my payment method?' -> Go to Account Settings > Payment Methods to add, e...
+    Distance: 0.118
+```
+
+Ref: [Deeplearning AI](https://learn.deeplearning.ai/courses/semantic-caching-for-ai-agents/lesson/600j39/build-your-first-semantic-cache)
