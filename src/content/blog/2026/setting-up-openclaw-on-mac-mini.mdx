@@ -1,0 +1,114 @@
+---
+title: 'Setting Up OpenClaw on a Mac Mini'
+date: 'Feb 10, 2026'
+description: "Documenting my experience setting up a self-hosted AI agent on a dedicated Mac Mini using OpenClaw, Telegram, and free models via OpenRouter."
+draft: true
+---
+
+I've been thinking a lot about what it would look like to have a persistent AI assistant that's always available — not just when I have my laptop open, but something running 24/7 on dedicated hardware that I can message anytime from my phone.
+
+This past weekend I finally set that up. Here's how.
+
+## Why a Dedicated Machine for an AI Agent?
+
+The idea is simple: instead of relying on cloud-hosted services or having an agent that only lives inside your IDE, what if you had your own always-on AI assistant running locally? One that you own, that respects your privacy, and that you can reach from anywhere via a messaging app.
+
+There's something appealing about having a small machine in the corner of your room that's just... thinking. Ready to help whenever you need it. No subscription fees, no rate limits, no data leaving your network unless you want it to.
+
+## What is OpenClaw?
+
+OpenClaw is an open-source, self-hosted AI agent runtime and message router created by Peter Steinberger. It's designed to run locally on your own hardware, giving you a privacy-first AI assistant with some really interesting features.
+
+> Fun fact: OpenClaw was originally called "Clawdbot" but was renamed after Anthropic sent a trademark complaint. The rename honestly gave it a cooler identity.
+
+Here's what makes it stand out:
+
+- **Self-hosted** — runs entirely on your own machine
+- **Persistent memory** — it remembers previous conversations and context across sessions
+- **Proactive "heartbeat" feature** — the agent can proactively reach out to you with updates, reminders, or thoughts without you having to prompt it
+- **Message routing** — supports multiple messaging interfaces (Telegram, etc.)
+- **Model agnostic** — works with various LLM providers through a flexible configuration
+
+The heartbeat feature is particularly interesting. Instead of a purely reactive assistant, OpenClaw can be configured to periodically "wake up" and do things — check on tasks, send you a summary, or just share something it thinks you'd find useful. It's a small thing, but it makes the agent feel more like an actual assistant and less like a chatbot.
+
+## The Hardware: Mac Mini
+
+{/* TODO: add image of Mac Mini setup */}
+
+Why a Mac Mini specifically? A few reasons:
+
+- **Always-on friendly** — Mac Minis are designed to run 24/7 without breaking a sweat. Low power consumption, silent operation, and great thermal management.
+- **Compact** — it sits on my desk and takes up almost no space
+- **macOS ecosystem** — easy to SSH into, manage remotely, and I'm already in the Apple ecosystem
+- **Affordable** — you don't need the latest and greatest. Even an older M-series Mac Mini has more than enough horsepower for running an agent runtime
+
+If you don't have a Mac Mini, this could just as easily run on a Raspberry Pi, an old laptop, or a cheap cloud VM. The key is having something that's always on and always reachable.
+
+## Setting Up OpenClaw
+
+Getting OpenClaw up and running was surprisingly straightforward. The project is well-documented and the setup process is fairly standard for a Node.js application.
+
+{/* TODO: add screenshot of OpenClaw running in terminal */}
+
+At a high level, the setup involves:
+
+1. **Clone the repo** and install dependencies
+2. **Configure your model provider** — this is where you tell OpenClaw which LLM to use (more on this below)
+3. **Set up your messaging interface** — in my case, Telegram
+4. **Configure memory and persistence** — OpenClaw stores conversation history and agent state locally
+5. **Run it** — and optionally set it up as a system service so it auto-starts on boot
+
+I set it up as a launch daemon on macOS so it starts automatically whenever the Mac Mini boots up. This means even after a power outage or restart, the agent comes right back online.
+
+## Telegram Integration
+
+I chose Telegram as my messaging interface for a few reasons:
+
+- It has a great bot API that's well-documented and free to use
+- The mobile app is solid on both iOS and macOS
+- It supports rich formatting, so the agent's responses look clean
+- I can message it from anywhere — my phone, my laptop, or even the web client
+
+{/* TODO: add screenshot of Telegram conversation with the agent */}
+
+Setting up the Telegram integration involves creating a bot through BotFather (Telegram's bot management tool), grabbing the API token, and plugging it into OpenClaw's configuration. The whole process takes about 5 minutes.
+
+Once it's configured, you just message your bot on Telegram and OpenClaw handles the rest — routing your message to the LLM, managing context, and sending back the response.
+
+> The experience of just pulling out your phone and texting your own self-hosted AI agent is honestly kind of magical. It feels different from using ChatGPT or Claude in a browser.
+
+## Model Configuration: OpenRouter + Free Models
+
+This is where things get interesting from a cost perspective. Instead of paying for API access directly from Anthropic or OpenAI, I'm using OpenRouter as my model provider.
+
+OpenRouter acts as a unified API gateway to dozens of different models from various providers. The killer feature? Some models are available for free.
+
+Right now I'm running **Arcee AI Trinity Large Preview** as my primary model. It's one of the free models available through OpenRouter, and honestly, for a personal assistant use case, it's more than capable.
+
+### The Cost-Effective Approach
+
+Here's the math that makes this setup appealing:
+
+- **Hardware cost:** One-time Mac Mini purchase (I already had one)
+- **OpenClaw:** Free and open-source
+- **Telegram:** Free
+- **Model inference:** Free (via OpenRouter's free tier models)
+
+Total ongoing cost: **$0/month**.
+
+Obviously, free models have trade-offs. They're generally smaller, may have rate limits, and won't match the quality of something like Claude Opus or GPT-5. But for a personal assistant handling day-to-day tasks — answering quick questions, helping me think through problems, setting reminders via the heartbeat feature — they're more than sufficient.
+
+I'm also planning to test more models through OpenRouter to find the best balance of quality and cost. The beauty of this setup is that switching models is just a config change — no code modifications needed.
+
+## What's Next
+
+This is still very much a weekend project in its early stages. Here's what I'm planning:
+
+- **More model testing** — I want to try a few more free and low-cost models to compare quality for different types of tasks
+- **Custom tools** — OpenClaw supports custom tool integrations, so I want to hook it up to some of my development workflows
+- **Better memory management** — testing how well the persistent memory works over longer periods and finding the right balance of context retention
+- **Home automation integration** — since the Mac Mini is always on, it could potentially interact with HomeKit or other smart home systems
+
+The broader vision here is having a personal AI agent that genuinely knows my preferences, my projects, and my routines — and can actually be proactive about helping. We're still early, but the building blocks are all there.
+
+If you're interested in setting up something similar, check out the OpenClaw project. It's a great weekend project and there's something deeply satisfying about running your own AI infrastructure.
